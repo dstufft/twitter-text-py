@@ -69,8 +69,13 @@ class Autolink(object):
             'username_class': self.DEFAULT_USERNAME_CLASS,
             'username_url_base': 'http://twitter.com/',
             'list_url_base': 'http://twitter.com/',
+            'append_slash': False,
         }
-        kwargs.update(defaults)
+        
+        _kwargs = kwargs.copy()
+        kwargs = defaults.copy()
+        kwargs.update(_kwargs)
+        
         extra_html = kwargs.get('suppress_no_follow', False) or self.HTML_ATTR_NO_FOLLOW
     
         matches = REGEXEN['auto_link_usernames_or_lists'].finditer(self.text)
@@ -84,7 +89,12 @@ class Autolink(object):
             else:
                 # this is a screen name
                 _username = match.group(3)
-                _link = u'%s<a class="%s" href="%s%s"%s>%s%s</a>' % ( match.group(1), ' '.join( [ kwargs.get('url_class'), kwargs.get('username_class', '') ] ), kwargs.get('username_url_base', ''), _username, extra_html, match.group(2), _username )
+                _url = "".join([kwargs.get('username_url_base', ''), _username])
+                
+                if kwargs.get("append_slash", False) and not _url.endswith("/"):
+                    _url = _url + "/"
+                
+                _link = u'%s<a class="%s" href="%s"%s>%s%s</a>' % (match.group(1), ' '.join([kwargs.get('url_class'), kwargs.get('username_class', '')]), _url, extra_html, match.group(2), _username)
                 del(_username)
             self.text = self.text.replace(match.group(0), _link)
             del(_link)
@@ -115,13 +125,23 @@ class Autolink(object):
             'url_class': self.DEFAULT_URL_CLASS,
             'hashtag_class': self.DEFAULT_HASHTAG_CLASS,
             'hashtag_url_base': 'http://twitter.com/search?q=%23',
+            'append_slash': False,
         }
-        kwargs.update(defaults)
+        
+        _kwargs = kwargs.copy()
+        kwargs = defaults.copy()
+        kwargs.update(_kwargs)
+        
         extra_html = kwargs.get('suppress_no_follow', False) or self.HTML_ATTR_NO_FOLLOW
     
         matches = REGEXEN['auto_link_hashtags'].finditer(self.text)
         for match in matches:
-            _link = u'%s<a href="%s%s" title="#%s" class="%s"%s>%s%s</a>' % ( match.group(1), kwargs.get('hashtag_url_base'), match.group(3), match.group(3), ' '.join( [ kwargs.get('url_class', ''), kwargs.get('hashtag_class', '') ] ), extra_html, match.group(2), match.group(3) )
+            _url = "".join([kwargs.get('hashtag_url_base'), match.group(3)])
+            
+            if kwargs.get("append_slash", False) and not _url.endswith("/"):
+                _url = _url + "/"
+                
+            _link = u'%s<a href="%s" title="#%s" class="%s"%s>%s%s</a>' % (match.group(1), _url, match.group(3), ' '.join([kwargs.get('url_class', ''), kwargs.get('hashtag_class', '')]), extra_html, match.group(2), match.group(3))
             self.text = self.text.replace(match.group(0), _link)
 
         if self.parent and hasattr(self.parent, 'text'):
@@ -150,7 +170,10 @@ class Autolink(object):
             defaults = {
                 'rel': ' '.join( [ kwargs.get('rel', ''), 'nofollow' ] ).strip()
             }
-        kwargs.update(defaults)
+        
+        _kwargs = kwargs.copy()
+        kwargs = defaults.copy()
+        kwargs.update(_kwargs)
 
         html_attrs = []
         for k, v in kwargs.items():
